@@ -6,6 +6,7 @@ import os
 import random
 import asyncio
 
+from groq import Groq
 load_dotenv()
 
 token = os.getenv('DISCORD_TOKEN')
@@ -14,7 +15,11 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
+key = os.getenv('API_KEY')
+groq_client = Groq(api_key=key)
+
 bot = commands.Bot(command_prefix='!', intents = intents)
+
 
 @bot.event
 async def on_ready():
@@ -24,6 +29,7 @@ async def on_ready():
 @bot.event 
 async def on_member_join(member):
     await member.send(f"Welcome to the server {member.name}")
+
 
 @bot.event
 async def on_message(message):
@@ -41,9 +47,9 @@ async def hello(ctx):
 
 @bot.command()
 async def guess(ctx):
-    await ctx.send("Alright you have 5 tries to guess the number im thinking of. Go on")
+    await ctx.send("Alright you have 10 tries to guess the number im thinking of. Go on")
 
-    chance = 5
+    chance = 10
     answer = random.randint(1,100)
     print(answer)
 
@@ -75,6 +81,26 @@ async def guess(ctx):
     await ctx.send(f"it was {answer} btw")
     
 
+@bot.command()
+
+async def ask(ctx,*,question):
+    await ctx.send("Thinking...")
+
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role":"system","content":"you are a friendly discord bot",},
+                {"role":"user","content":question}
+            ]
+        )
+
+        reply = response.choices[0].message.content
+        await ctx.send(reply[:2000])
+        
+    except Exception as e:
+        await ctx.send("error")
+        print(e)
 
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
